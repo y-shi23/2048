@@ -327,6 +327,7 @@ const Index = () => {
           if (!isGuest && user && newScore > 0) {
             saveScore(user.id, newScore).catch(error => {
               console.error('Failed to save score to Supabase:', error);
+              // 如果保存失败，不影响游戏体验，只是不保存到数据库
             });
           }
         }, 0);

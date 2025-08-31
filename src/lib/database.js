@@ -97,23 +97,55 @@ export const getUserProfile = async (userId) => {
 };
 
 export const upsertUserProfile = async (user) => {
-  const { data, error } = await supabase
-    .from('users')
-    .upsert([
-      {
-        id: user.id,
-        username: user.user_metadata.user_name || user.email,
-        avatar_url: user.user_metadata.avatar_url,
-        email: user.email,
-        updated_at: new Date().toISOString(),
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .upsert([
+        {
+          id: user.id,
+          username: user.user_metadata?.user_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User',
+          avatar_url: user.user_metadata?.avatar_url,
+          email: user.email,
+          updated_at: new Date().toISOString(),
+        }
+      ], {
+        onConflict: 'id'
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Supabase upsert error:', error);
+      // 如果upsert失败，尝试只插入
+      if (error.code === '42501') { // RLS violation
+        const { data: insertData, error: insertError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: user.id,
+              username: user.user_metadata?.user_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User',
+              avatar_url: user.user_metadata?.avatar_url,
+              email: user.email,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          ])
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error('Insert fallback failed:', insertError);
+          throw insertError;
+        }
+        
+        return insertData;
       }
-    ])
-    .select()
-    .single();
-  
-  if (error) {
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in upsertUserProfile:', error);
     throw error;
   }
-  
-  return data;
 };

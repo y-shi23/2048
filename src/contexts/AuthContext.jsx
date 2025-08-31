@@ -36,6 +36,8 @@ export const AuthProvider = ({ children }) => {
       if (event === 'SIGNED_IN' && sessionUser) {
         setUser(sessionUser);
         setIsGuest(false); // GitHub登录时退出游客模式
+        
+        // 用户记录应该由数据库触发器自动创建，不在这里手动创建
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         if (!isGuest) {
